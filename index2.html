@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Empathy RPG - Workplace Inclusion Game</title>
+<style>
+  /* CSS Reset & Base */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    overflow-x: hidden;
+    background: var(--bg);
+    color: var(--text);
+    transition: background-color 0.6s ease, color 0.6s ease;
+  }
+  a, button {
+    font-family: inherit; cursor: pointer;
+  }
+
+  /* Variables for light and dark modes + morning/night */
+  :root {
+    /* Colors */
+    --pink: #e0557d;
+    --red: #e63e4d;
+    --green: #2ab27b;
+    --yellow: #f0c419;
+    --blue: #2e86de;
+    --purple: #6a4cc0;
+    --gray-light: #f3f4f6;
+    --gray-medium: #787c7e;
+    --gray-dark: #3a3a3a;
+
+    /* Background Gradients */
+    --bg-morning: linear-gradient(135deg, #fcf6bd, #e0f2fe);
+    --bg-night: linear-gradient(135deg, #1f2937, #111827);
+
+    /* Theme colors for text */
+    --text-light: #222;
+    --text-dark: #ddd;
+
+    /* Meters Colors */
+    --empathy-color: #ff416c;  /* pink/red heart */
+    --bias-color: #ff7f50;     /* coral shield */
+    --awareness-color: #ffc107; /* amber lightbulb */
+    --tone-color: #4caf50;      /* green */
+  }
+
+  /* Default Theme/Ambient: Morning Light */
+  body[data-theme="morning"] {
+    --bg: var(--bg-morning);
+    --text: var(--text-light);
+  }
+  body[data-theme="night"] {
+    --bg: var(--bg-night);
+    --text: var(--text-dark);
+  }
+
+  /* Layout */
+  #app {
+    max-width: 900px;
+    margin: 12px auto 24px;
+    background: rgba(255 255 255 / 0.85);
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgb(0 0 0 / 0.12);
+    padding: 24px;
+    backdrop-filter: saturate(180%) blur(12px);
+    color: var(--text);
+  }
+  body[data-theme="night"] #app {
+    background: rgba(20 20 20 / 0.85);
+  }
+
+  h1 {
+    font-weight: 900;
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  h2 {
+    margin-top: 1rem;
+    margin-bottom: 0.8rem;
+    font-weight: 700;
+  }
+
+  /* Top Controls: Theme switch and Mode*/
+  #top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 1rem;
+  }
+  .switch-label {
+    user-select: none;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  input[type="checkbox"] {
+    width: 40px;
+    height: 20px;
+    -webkit-appearance: none;
+    background: #c6c6c6;
+    outline: none;
+    border-radius: 20px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  input[type="checkbox"]:checked {
+    background: var(--purple);
+  }
+  input[type="checkbox"]::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    top: 1px;
+    left: 1px;
+    background: white;
+    transition: 0.3s;
+  }
+  input[type="checkbox"]:checked::before {
+    transform: translateX(20px);
+  }
+
+  /* Avatar selection container */
+  #avatar-selection {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 1.8rem;
+    user-select: none;
+  }
+  .avatar-card {
+    width: 110px;
+    height: 140px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    box-shadow: 0 5px 12px rgb(0 0 0 / 0.2);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 10px 12px;
+    transition: transform 0.3s ease, box-shadow 0.4s ease;
+    color: white;
+    font-weight: 700;
+  }
+  .avatar-card:hover {
+    transform: scale(1.1) translateY(-6px);
+    box-shadow: 0 12px 20px rgb(0 0 0 / 0.3);
+  }
+  .avatar-card.selected {
+    box-shadow: 0 0 24px 6px #ffd700aa;
+    transform: scale(1.12) translateY(-8px);
+    border: 3px solid #ffd700;
+  }
+  .avatar-emoji {
+    font-size: 5rem;
+  }
+  .avatar-label {
+    margin-top: 6px;
+    font-size: 1.1rem;
+    text-shadow: 1px 1px 2px #00000080;
+  }
+
+  /* Main content (question & game area) */
+  #game-area {
+    margin-top: 10px;
+  }
+
+  /* Scenario text */
+  #scenario-text {
+    font-weight: 700;
+    font-size: 1.3rem;
+    margin-bottom: 18px;
+    min-height: 72px;
+  }
+
+  /* Choices */
+  #choices {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .choice-btn {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    color: #222;
+    font-weight: 700;
+    border-radius: 24px;
+    border: none;
+    padding: 14px 18px;
+    font-size: 1.1rem;
+    box-shadow: 0 5px 10px rgb(56 249 215 / 0.5);
+    transition: background 0.3s, box-shadow 0.4s ease;
+    cursor: pointer;
+  }
+  .choice-btn:hover {
+    background: linear-gradient(135deg, #38f9d7 0%, #43e97b 100%);
+    box-shadow: 0 8px 18px rgb(56 249 215 / 0.9);
+  }
+  .choice-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  /* Feedback text area */
+  #feedback {
+    margin-top: 14px;
+    font-size: 1rem;
+    font-weight: 700;
+    min-height: 38px;
+    min-width: 100%;
+    border-radius: 12px;
+    padding: 10px 14px;
+    background: #fff8e1;
+    color: #3e2723;
+    box-shadow: 1px 1px 10px #ffeb3b88;
+    user-select: none;
+  }
+  body[data-theme="night"] #feedback {
+    background: #333a4d;
+    color: #cddc39;
+    box-shadow: 1px 1px 10px #cddc3988;
+  }
+  #feedback.low-empathy {
+    background-color: #ffcdd2;
+    color: #b71c1c;
+    box-shadow: 1px 1px 10px #f4433666;
+  }
+
+  /* Meters container */
+  #meters {
+    display: flex;
+    justify-content: space-around;
+    margin: 24px 0 32px;
+    gap: 12px;
+  }
+  .meter {
+    flex: 1;
+    background: #e0e0e0a0;
+    border-radius: 16px;
+    padding: 10px 8px;
+    user-select: none;
+    color: var(--text);
+    box-shadow: inset 0 0 8px #88888860;
+  }
+  body[data-theme="night"] .meter {
+    background: #222436;
+    box-shadow: inset 0 0 8px #111933a0;
+  }
+  .meter-label {
+    font-weight: 700;
+    font-size: 0.88rem;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .meter-label span.icon {
+    font-size: 1.25rem;
+    display: inline-block;
+  }
+  .meter-bar-bg {
+    width: 100%;
+    height: 14px;
+    background: #cacaca50;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .meter-bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 10px 0 0 10px;
+    transition: width 0.5s ease;
+  }
+  .meter-empathy {
+    background: var(--empathy-color);
+  }
+  .meter-bias {
+    background: var(--bias-color);
+  }
+  .meter-awareness {
+    background: var(--awareness-color);
+  }
+  .meter-tone {
+    background: var(--tone-color);
+  }
+
+  /* XP & Level display */
+  #xp-level {
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-bottom: 16px;
+  }
+  #xp-level span {
+    color: var(--purple);
+  }
+
+  /* Badge & streak container */
+  #badges-streak {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    margin-bottom: 20px;
+    user-select: none;
+  }
+  .badge {
+    padding: 8px 14px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #ffb347, #ffcc33);
+    font-weight: 700;
+    box-shadow: 0 3px 10px #e09e00dd;
+    white-space: nowrap;
+  }
+  #streak-counter {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--blue);
+    padding: 8px 14px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #56ccf2, #2f80ed);
+    box-shadow: 0 3px 10px #2f80edbb;
+  }
+
+  /* Report & dashboard */
+  #report {
+    display: none;
+    margin-top: 24px;
+  }
+  #report h2 {
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  #skill-bars {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    margin-bottom: 20px;
+  }
+  .skill-bar-container {
+    background: #ddd;
+    border-radius: 20px;
+    padding: 10px 14px;
+    user-select: none;
+  }
+  body[data-theme="night"] .skill-bar-container {
+    background: #222436;
+  }
+  .skill-bar-label {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+  }
+  .skill-bar-bg {
+    width: 100%;
+    height: 20px;
+    background: #bbb;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  body[data-theme="night"] .skill-bar-bg {
+    background: #44475a;
+  }
+  .skill-bar-fill {
+    height: 100%;
+    border-radius: 16px 0 0 16px;
+    transition: width 0.5s ease;
+  }
+  .skill-empathy { background: var(--empathy-color); }
+  .skill-bias { background: var(--bias-color); }
+  .skill-awareness { background: var(--awareness-color); }
+  .skill-tone { background: var(--tone-color); }
+
+  /* Progress wheels simulation */
+  #progress-wheels {
+    display: flex;
+    justify-content: space-around;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+  .wheel {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent-color) 0%, #ddd 0%);
+    box-shadow: 0 3px 8px #5555aa66 inset;
+    user-select: none;
+  }
+  body[data-theme="night"] .wheel {
+    background: conic-gradient(var(--purple) 0%, #44475a 0%);
+    box-shadow: 0 3px 8px #9977cc99 inset;
+  }
+  .wheel > span {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--text);
+  }
+
+  /* Trend text style */
+  #trend {
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-align: center;
+    margin-bottom: 16px;
+    user-select: none;
+  }
+  #trend.positive {
+    color: var(--green);
+  }
+  #trend.negative {
+    color: var(--red);
+  }
+
+  /* Animations - glowing meters and icons */
+  @keyframes glowing {
+    0% { box-shadow: 0 0 5px 1px #ff77aaaa; }
+    50% { box-shadow: 0 0 18px 5px #ff3388cc; }
+    100% { box-shadow: 0 0 5px 1px #ff77aaaa; }
+  }
+  .glow {
+    animation: glowing 2.4s infinite;
+  }
+
+  /* Sunmoon container & animation */
+  #ambience {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 60px;
+    pointer-events: none;
+    user-select: none;
+    z-index: 20;
+  }
+  #sunmoon {
+    position: absolute;
+    top: 8px; 
+    left: 0;
+    width: 44px;
+    height: 44px;
+    background: radial-gradient(circle closest-side, #ffd700, #ffb300);
+    border-radius: 50%;
+    box-shadow: 0 0 14px 4px #ffd700aa;
+    animation: sunMove 30s linear infinite;
+  }
+  body[data-theme="night"] #sunmoon {
+    background: radial-gradient(circle closest-side, #c6d4ff, #253bff);
+    box-shadow: 0 0 14px 4px #4b6bffaa;
+  }
+  @keyframes sunMove {
+    0% { left: 5%; top: 8px; }
+    50% { left: 85vw; top: 2px; }
+    100% { left: 5%; top: 8px; }
+  }
+  #motivation {
+    position: fixed;
+    top: 66px;
+    width: 100%;
+    font-weight: 600;
+    text-align: center;
+    font-size: 1.1rem;
+    color: var(--text);
+    text-shadow: 1px 1px 2px #00000044;
+    user-select: none;
+  }
+
+  /* Start button attractive animation */
+  #start-btn {
+    background: linear-gradient(135deg, #38f9d7 0%, #43e97b 100%);
+    color: #222;
+    font-weight: 900;
+    font-size: 1.3rem;
+    border-radius: 30px;
+    padding: 14px 24px;
+    border: none;
+    margin: 0 auto 1.5rem;
+    cursor: not-allowed;
+    opacity: 0.5;
+    box-shadow: 0 0 0 rgba(0,0,0,0);
+    user-select: none;
+    transition: box-shadow 0.3s ease, opacity 0.3s ease;
+    display: block;
+    max-width: 320px;
+    text-align: center;
+  }
+  #start-btn.enabled {
+    cursor: pointer;
+    opacity: 1;
+    animation: pulseGlow 1.8s infinite alternate ease-in-out;
+    box-shadow: 0 5px 15px #0ff8bb;
+  }
+  @keyframes pulseGlow {
+    0% {
+      box-shadow: 0 0 8px #0ff8bb, 0 0 15px #05d3a8, 0 0 20px #02a586;
+    }
+    100% {
+      box-shadow: 0 0 15px #0ff8bb, 0 0 25px #05d3a8, 0 0 35px #02a586;
+    }
+  }
+
+  /* Responsive */
+  @media(max-width: 760px) {
+    #avatar-selection {
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .avatar-card {
+      width: 90px; height: 120px;
+      font-size: 0.9rem;
+    }
+    #game-area {
+      padding: 0 8px;
+    }
+  }
+  @media(max-width: 420px) {
+    #meters {
+      flex-direction: column;
+      gap: 16px;
+    }
+  }
+</style>
+</head>
+<body data-theme="morning">
+<div id="ambience"><div id="sunmoon"></div></div>
+<div id="motivation">Welcome! Choose your avatar to begin your empathy journey.</div>
+<div id="app">
+  <div id="top-bar">
+    <label class="switch-label" title="Toggle Dark Mode">
+      <input id="toggle-theme" type="checkbox" aria-label="Toggle Dark Mode" />
+      Dark Mode
+    </label>
+    <label class="switch-label" title="Toggle Morning/Night Mode">
+      <input id="toggle-ambience" type="checkbox" aria-label="Toggle Morning or Night Mode" />
+      Night Mode
+    </label>
+  </div>
+
+  <h1>Empathy RPG: Workplace Inclusion Game</h1>
+
+  <section id="avatar-selection" aria-label="Avatar Selection">
+    <div tabindex="0" role="button" aria-pressed="false" class="avatar-card" data-id="avatar1" aria-label="Avatar 1, Male, Business Casual" >
+      <div class="avatar-emoji" aria-hidden="true">👨‍💼</div>
+      <div class="avatar-label">Avatar 1</div>
+    </div>
+    <div tabindex="0" role="button" aria-pressed="false" class="avatar-card" data-id="avatar2" aria-label="Avatar 2, Female, Corporate" >
+      <div class="avatar-emoji" aria-hidden="true">👩‍💼</div>
+      <div class="avatar-label">Avatar 2</div>
+    </div>
+    <div tabindex="0" role="button" aria-pressed="false" class="avatar-card" data-id="avatar3" aria-label="Avatar 3, Female, Casual Office" >
+      <div class="avatar-emoji" aria-hidden="true">👩‍💻</div>
+      <div class="avatar-label">Avatar 3</div>
+    </div>
+  </section>
+
+  <button id="start-btn" disabled aria-disabled="true" aria-label="Start Game Button, disabled until avatar selected">
+    Start Challenge
+  </button>
+
+  <section id="game-area" aria-live="polite" aria-atomic="true" aria-relevant="additions removals">
+    <div id="scenario-text" aria-live="polite" aria-atomic="true"></div>
+    <div id="choices"></div>
+    <div id="feedback" aria-live="assertive" aria-atomic="true"></div>
+  </section>
+
+  <section id="meters" aria-label="Empathy and Inclusion Metrics">
+    <div class="meter" aria-label="Empathy Meter">
+      <div class="meter-label"><span class="icon" aria-hidden="true">❤️</span> Empathy</div>
+      <div class="meter-bar-bg">
+        <div id="meter-empathy" class="meter-bar-fill meter-empathy" style="width: 0%;"></div>
+      </div>
+    </div>
+    <div class="meter" aria-label="Bias Intervention Meter">
+      <div class="meter-label"><span class="icon" aria-hidden="true">🛑</span> Bias Intervention</div>
+      <div class="meter-bar-bg">
+        <div id="meter-bias" class="meter-bar-fill meter-bias" style="width: 0%;"></div>
+      </div>
+    </div>
+    <div class="meter" aria-label="Awareness and Reflection Meter">
+      <div class="meter-label"><span class="icon" aria-hidden="true">🧠</span> Awareness &amp; Reflection</div>
+      <div class="meter-bar-bg">
+        <div id="meter-awareness" class="meter-bar-fill meter-awareness" style="width: 0%;"></div>
+      </div>
+    </div>
+    <div class="meter" aria-label="Tone and Communication Meter">
+      <div class="meter-label"><span class="icon" aria-hidden="true">🗣️</span> Tone &amp; Communication</div>
+      <div class="meter-bar-bg">
+        <div id="meter-tone" class="meter-bar-fill meter-tone" style="width: 0%;"></div>
+      </div>
+    </div>
+  </section>
+
+  <div id="xp-level" aria-live="polite" aria-atomic="true">XP: <span>0</span> | Level: <span>1</span></div>
+  <div id="badges-streak" aria-label="Badges and Daily Challenge Streak">
+    <div class="badge" id="badge-title">Newcomer</div>
+    <div id="streak-counter" aria-live="polite" aria-atomic="true" aria-label="Daily practice streak">🔥 0-day streak</div>
+  </div>
+
+  <section id="report" aria-label="Progress Report">
+    <h2>Your Progress Report</h2>
+    <div id="progress-wheels" aria-hidden="true">
+      <div class="wheel" id="wheel-empathy"><span>Empathy</span></div>
+      <div class="wheel" id="wheel-bias"><span>Bias</span></div>
+      <div class="wheel" id="wheel-awareness"><span>Awareness</span></div>
+      <div class="wheel" id="wheel-tone"><span>Tone</span></div>
+    </div>
+    <div id="skill-bars" aria-hidden="true">
+      <div class="skill-bar-container">
+        <div class="skill-bar-label">Empathy</div>
+        <div class="skill-bar-bg"><div id="skill-empathy" class="skill-bar-fill skill-empathy" style="width:0%;"></div></div>
+      </div>
+      <div class="skill-bar-container">
+        <div class="skill-bar-label">Bias Intervention</div>
+        <div class="skill-bar-bg"><div id="skill-bias" class="skill-bar-fill skill-bias" style="width:0%;"></div></div>
+      </div>
+      <div class="skill-bar-container">
+        <div class="skill-bar-label">Awareness & Reflection</div>
+        <div class="skill-bar-bg"><div id="skill-awareness" class="skill-bar-fill skill-awareness" style="width:0%;"></div></div>
+      </div>
+      <div class="skill-bar-container">
+        <div class="skill-bar-label">Tone & Communication</div>
+        <div class="skill-bar-bg"><div id="skill-tone" class="skill-bar-fill skill-tone" style="width:0%;"></div></div>
+      </div>
+    </div>
+    <div id="trend" aria-live="polite" aria-atomic="true"></div>
+    <canvas id="improvement-chart" width="400" height="250" style="display:none; margin: 0 auto 24px;"></canvas>
+  </section>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const MAX_METER = 100;
+
+  const LEVELS = [
+    { level: 1, title: "Newcomer", minXP: 0 },
+    { level: 2, title: "Bias Breaker", minXP: 150 },
+    { level: 3, title: "Empathy Ally", minXP: 350 },
+    { level: 4, title: "Inclusive Leader", minXP: 600 },
+    { level: 5, title: "Workplace Champion", minXP: 950 }
+  ];
+
+  const AVATAR_SCENARIOS = {
+    avatar1: [
+      {
+        id: "s1",
+        text: "A colleague interrupts you repeatedly during a meeting. How do you respond?",
+        choices: [
+          { text: "Politely assert your point and ask for respect.", effects: { empathy: 15, bias: 10, awareness: 5, tone: 10 }, feedback: "✨ Your empathy and bias intervention grew! Good assertiveness." },
+          { text: "Ignore it and continue speaking.", effects: { empathy: 5, bias: 0, awareness: 0, tone: 5 }, feedback: "⚠️ You missed a chance to intervene effectively." },
+          { text: "React loudly and call out their behavior.", effects: { empathy: 0, bias: -10, awareness: 5, tone: -5 }, feedback: "⚠️ Tone lowered due to confrontation. Try calm communication." },
+        ]
+      },
+      {
+        id: "s2",
+        text: "You overhear a teammate make a biased joke. What do you do?",
+        choices: [
+          { text: "Gently explain why the joke is harmful.", effects: { empathy: 20, bias: 15, awareness: 10, tone: 10 }, feedback: "✨ You stood up with empathy and awareness." },
+          { text: "Laugh it off to keep peace.", effects: { empathy: 0, bias: -10, awareness: 0, tone: 0 }, feedback: "⚠️ You missed an opportunity to intervene." },
+          { text: "Report it directly to HR.", effects: { empathy: 10, bias: 20, awareness: 5, tone: 5 }, feedback: "✨ Taking action to intervene – well done." },
+        ]
+      },
+    ],
+    avatar2: [
+      {
+        id: "s1",
+        text: "Your manager assigns you extra tasks assuming you're better at multitasking because you're female. How do you reply?",
+        choices: [
+          { text: "Express your workload and request fair task distribution.", effects: { empathy: 20, bias: 15, awareness: 10, tone: 15 }, feedback: "✨ You addressed bias with clear communication." },
+          { text: "Accept without complaint to avoid conflict.", effects: { empathy: 5, bias: -5, awareness: 0, tone: 5 }, feedback: "⚠️ Remaining silent might reinforce bias." },
+          { text: "Joke about multitasking but set boundaries.", effects: { empathy: 10, bias: 5, awareness: 5, tone: 10 }, feedback: "✨ Good use of tone and reflection." },
+        ]
+      },
+      {
+        id: "s2",
+        text: "A male colleague takes credit for your idea in a meeting. Your move?",
+        choices: [
+          { text: "Calmly clarify that it was your idea after the meeting.", effects: { empathy: 20, bias: 10, awareness: 10, tone: 10 }, feedback: "✨ Balanced approach with strong tone and empathy." },
+          { text: "Confront him publicly during the meeting.", effects: { empathy: 10, bias: 5, awareness: 0, tone: -10 }, feedback: "⚠️ Tone affected; try a less confrontational approach." },
+          { text: "Avoid confrontation to keep team harmony.", effects: { empathy: 5, bias: -10, awareness: 0, tone: 0 }, feedback: "⚠️ Avoiding issue may let bias continue." },
+        ]
+      },
+    ],
+    avatar3: [
+      {
+        id: "s1",
+        text: "A teammate always overlooks you for projects, assuming you're too junior. How to respond?",
+        choices: [
+          { text: "Request a meeting to discuss your skills and eagerness.", effects: { empathy: 20, bias: 15, awareness: 10, tone: 15 }, feedback: "✨ Showing assertiveness and awareness." },
+          { text: "Let it slide; focus on improving silently.", effects: { empathy: 5, bias: -5, awareness: 5, tone: 5 }, feedback: "⚠️ Missing chance to intervene actively." },
+          { text: "Talk to manager about bias in team assignments.", effects: { empathy: 10, bias: 20, awareness: 10, tone: 10 }, feedback: "✨ Taking bias intervention seriously." },
+        ]
+      },
+      {
+        id: "s2",
+        text: "During feedback session, your ideas are dismissed repeatedly. What do you do?",
+        choices: [
+          { text: "Ask politely for concrete reasons and offer alternatives.", effects: { empathy: 20, bias: 10, awareness: 15, tone: 15 }, feedback: "✨ Great tone and reflection showing empathy." },
+          { text: "Accept criticism without question to avoid conflict.", effects: { empathy: 5, bias: -5, awareness: 0, tone: 5 }, feedback: "⚠️ Potentially internalizing bias without intervention." },
+          { text: "Share your feelings honestly with the manager later.", effects: { empathy: 15, bias: 10, awareness: 20, tone: 10 }, feedback: "✨ Reflective and proactive feedback approach." },
+        ]
+      },
+    ]
+  };
+
+  // Utility to generate a random int between min and max inclusive
+  const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+  // Game state
+  const state = {
+    selectedAvatar: null,
+    currentScenarioIndex: 0,
+    xp: 0,
+    level: 1,
+    meters: { empathy: 0, bias: 0, awareness: 0, tone: 0 },
+    streak: 0,
+    badges: new Set(),
+    dailyPlayedDate: null,
+    currentScenarioList: [],
+  };
+
+  // DOM Elements
+  const avatars = document.querySelectorAll('.avatar-card');
+  const startBtn = document.getElementById('start-btn');
+  const scenarioText = document.getElementById('scenario-text');
+  const choicesDiv = document.getElementById('choices');
+  const feedbackDiv = document.getElementById('feedback');
+  const metersEls = {
+    empathy: document.getElementById('meter-empathy'),
+    bias: document.getElementById('meter-bias'),
+    awareness: document.getElementById('meter-awareness'),
+    tone: document.getElementById('meter-tone'),
+  };
+  const xpDisplay = document.querySelector('#xp-level span:nth-child(1)');
+  const levelDisplay = document.querySelector('#xp-level span:nth-child(2)');
+  const badgeTitle = document.getElementById('badge-title');
+  const streakCounter = document.getElementById('streak-counter');
+  const reportSection = document.getElementById('report');
+  const skillBars = {
+    empathy: document.getElementById('skill-empathy'),
+    bias: document.getElementById('skill-bias'),
+    awareness: document.getElementById('skill-awareness'),
+    tone: document.getElementById('skill-tone'),
+  };
+  const wheels = {
+    empathy: document.getElementById('wheel-empathy'),
+    bias: document.getElementById('wheel-bias'),
+    awareness: document.getElementById('wheel-awareness'),
+    tone: document.getElementById('wheel-tone'),
+  };
+  const trendText = document.getElementById('trend');
+
+  const themeToggle = document.getElementById('toggle-theme');
+  const ambienceToggle = document.getElementById('toggle-ambience');
+  const body = document.body;
+  const motivation = document.getElementById('motivation');
+  const improvementChartCanvas = document.getElementById('improvement-chart');
+  let improvementChart = null;
+
+  // Accessibility: handle keyboard on avatar cards
+  avatars.forEach(avatar => {
+    avatar.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        avatar.click();
+      }
+    });
+  });
+
+  // Avatar selection
+  avatars.forEach(avatar => {
+    avatar.addEventListener('click', () => {
+      avatars.forEach(a => {
+        a.classList.remove('selected');
+        a.setAttribute('aria-pressed', 'false');
+      });
+      avatar.classList.add('selected');
+      avatar.setAttribute('aria-pressed', 'true');
+      state.selectedAvatar = avatar.dataset.id;
+      startBtn.disabled = false;
+      startBtn.setAttribute('aria-disabled', 'false');
+      startBtn.classList.add('enabled');
+      motivation.textContent = "Ready for daily challenges? Press Start!";
+    });
+  });
+
+  // Start button handler
+  startBtn.addEventListener('click', () => {
+    if (!state.selectedAvatar) return;
+    startBtn.disabled = true;
+    startBtn.setAttribute('aria-disabled', 'true');
+    motivation.textContent = "Answer thoughtfully. Meters adjust in real time.";
+    feedbackDiv.classList.remove('low-empathy');
+    feedbackDiv.textContent = "";
+    reportSection.style.display = "none";
+    state.currentScenarioIndex = 0;
+    state.currentScenarioList = AVATAR_SCENARIOS[state.selectedAvatar].slice(); // copy scenarios array
+    loadScenario();
+  });
+
+  // Load current scenario question and choices
+  function loadScenario() {
+    feedbackDiv.classList.remove('low-empathy');
+    feedbackDiv.textContent = "";
+    if (state.currentScenarioIndex >= state.currentScenarioList.length) {
+      endSession();
+      return;
+    }
+    const scenario = state.currentScenarioList[state.currentScenarioIndex];
+    scenarioText.textContent = scenario.text;
+    choicesDiv.innerHTML = "";
+    scenario.choices.forEach((choice, idx) => {
+      const btn = document.createElement('button');
+      btn.className = "choice-btn";
+      btn.textContent = choice.text;
+      btn.setAttribute('aria-label', `Choice ${idx + 1}: ${choice.text}`);
+      btn.onclick = () => {
+        applyChoiceEffects(choice.effects, choice.feedback);
+        state.currentScenarioIndex++;
+        // Adaptive difficulty simulation: random shuffle kids next scenario
+        if (Math.random() > 0.6 && state.currentScenarioIndex < state.currentScenarioList.length) {
+          const nextIndex = state.currentScenarioIndex;
+          const swapWith = randInt(nextIndex, state.currentScenarioList.length - 1);
+          if (swapWith !== nextIndex) {
+            let temp = state.currentScenarioList[nextIndex];
+            state.currentScenarioList[nextIndex] = state.currentScenarioList[swapWith];
+            state.currentScenarioList[swapWith] = temp;
+          }
+        }
+        setTimeout(loadScenario, 1600);
+      };
+      choicesDiv.appendChild(btn);
+    });
+  }
+
+  // Apply choice effects to meters and give feedback with empathy bias feedback
+  function applyChoiceEffects(effects, feedback) {
+    for (const key in effects) {
+      if (state.meters.hasOwnProperty(key)) {
+        state.meters[key] += effects[key];
+        if (state.meters[key] > MAX_METER) state.meters[key] = MAX_METER;
+        if (state.meters[key] < 0) state.meters[key] = 0;
+      }
+    }
+    const xpGain = Math.max(0,
+      (effects.empathy || 0) +
+      (effects.bias || 0) +
+      (effects.awareness || 0) +
+      (effects.tone || 0)
+    );
+    state.xp += xpGain;
+    updateLevelAndBadges();
+    updateUI();
+
+    if ((effects.empathy ?? 0) < 10) {
+      feedbackDiv.classList.add('low-empathy');
+      feedbackDiv.textContent = `⚠️ Low empathy detected! ${feedback}`;
+    } else if ((effects.bias ?? 0) < 10) {
+      feedbackDiv.classList.remove('low-empathy');
+      feedbackDiv.textContent = `⚠️ Could improve bias intervention. ${feedback}`;
+    } else {
+      feedbackDiv.classList.remove('low-empathy');
+      feedbackDiv.textContent = feedback;
+    }
+  }
+
+  // Update XP, level, titles, badges
+  function updateLevelAndBadges() {
+    let newLevel = 1;
+    let newTitle = "Newcomer";
+    for (const lvl of LEVELS) {
+      if (state.xp >= lvl.minXP) {
+        newLevel = lvl.level;
+        newTitle = lvl.title;
+      }
+    }
+    const levelUp = newLevel > state.level;
+    state.level = newLevel;
+    badgeTitle.textContent = newTitle;
+    if (levelUp) {
+      badgeTitle.classList.add('glow');
+      setTimeout(() => badgeTitle.classList.remove('glow'), 3000);
+    }
+  }
+
+  // Update meters bars and UI
+  function updateUI() {
+    metersEls.empathy.style.width = state.meters.empathy + '%';
+    metersEls.bias.style.width = state.meters.bias + '%';
+    metersEls.awareness.style.width = state.meters.awareness + '%';
+    metersEls.tone.style.width = state.meters.tone + '%';
+
+    document.querySelectorAll('#xp-level span')[0].textContent = state.xp;
+    document.querySelectorAll('#xp-level span')[1].textContent = state.level;
+
+    skillBars.empathy.style.width = state.meters.empathy + '%';
+    skillBars.bias.style.width = state.meters.bias + '%';
+    skillBars.awareness.style.width = state.meters.awareness + '%';
+    skillBars.tone.style.width = state.meters.tone + '%';
+
+    wheels.empathy.style.background = `conic-gradient(var(--empathy-color) 0% ${state.meters.empathy}%, #ddd ${state.meters.empathy}% 100%)`;
+    wheels.bias.style.background = `conic-gradient(var(--bias-color) 0% ${state.meters.bias}%, #ddd ${state.meters.bias}% 100%)`;
+    wheels.awareness.style.background = `conic-gradient(var(--awareness-color) 0% ${state.meters.awareness}%, #ddd ${state.meters.awareness}% 100%)`;
+    wheels.tone.style.background = `conic-gradient(var(--tone-color) 0% ${state.meters.tone}%, #ddd ${state.meters.tone}% 100%)`;
+  }
+
+  // Session end: show report & update streak localStorage
+  function endSession() {
+    motivation.textContent = "Great job! Check your progress report.";
+    scenarioText.textContent = "";
+    choicesDiv.innerHTML = "";
+    feedbackDiv.textContent = "";
+
+    updateStreakAndStorage();
+    showReport();
+    startBtn.disabled = false;
+    startBtn.setAttribute('aria-disabled', 'false');
+  }
+
+  // Handle daily streak and storage
+  function updateStreakAndStorage() {
+    const today = (new Date()).toISOString().slice(0,10);
+    let lastPlay = localStorage.getItem('empathy-rpg-lastplay');
+    let streak = parseInt(localStorage.getItem('empathy-rpg-streak') || "0", 10);
+    if (lastPlay === today) {
+      state.streak = streak;
+    } else {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayISO = yesterday.toISOString().slice(0,10);
+      if (lastPlay === yesterdayISO) {
+        streak++;
+      } else {
+        streak = 1;
+      }
+      state.streak = streak;
+      localStorage.setItem('empathy-rpg-lastplay', today);
+      localStorage.setItem('empathy-rpg-streak', streak.toString());
+    }
+    streakCounter.textContent = `🔥 ${state.streak}-day streak`;
+    badgeTitle.textContent = LEVELS.filter(lvl=> state.xp >= lvl.minXP).slice(-1)[0].title;
+  }
+
+  // Show report & improvement chart
+  function showReport() {
+    reportSection.style.display = "block";
+    const LAST_KEY = 'empathy-rpg-lastmeters';
+    const lastMetersRaw = localStorage.getItem(LAST_KEY);
+    let lastMeters = null;
+    if (lastMetersRaw) {
+      try {
+        lastMeters = JSON.parse(lastMetersRaw);
+      } catch { lastMeters = null; }
+    }
+    localStorage.setItem(LAST_KEY, JSON.stringify(state.meters));
+
+    if (lastMeters) {
+      const percentChange = (current, prev) => (prev === 0 ? 100 : Math.round(((current - prev) / prev) * 100));
+      let empathyChange = percentChange(state.meters.empathy, lastMeters.empathy);
+      let biasChange = percentChange(state.meters.bias, lastMeters.bias);
+
+      trendText.textContent = empathyChange > 0 ?
+        `📈 Your empathy improved by ${empathyChange}% since last session!` :
+        empathyChange < 0 ?
+          `📉 Your empathy decreased by ${Math.abs(empathyChange)}%. Try again!` :
+          `⚖️ Your empathy remains steady from last session.`;
+
+      trendText.className = empathyChange > 0 ? 'positive' : empathyChange < 0 ? 'negative' : '';
+
+      showImprovementChart([empathyChange, biasChange]);
+    } else {
+      trendText.textContent = "Welcome to your first session report!";
+      trendText.className = '';
+      improvementChartCanvas.style.display = 'none';
+    }
+  }
+
+  // Chart.js improvement bar chart
+  function showImprovementChart(improvements) {
+    improvementChartCanvas.style.display = 'block';
+    if (improvementChart) {
+      improvementChart.data.datasets[0].data = improvements;
+      improvementChart.update();
+      return;
+    }
+
+    if (typeof Chart === 'undefined') {
+      const script = document.createElement('script');
+      script.src = "https://cdn.jsdelivr.net/npm/chart.js";
+      script.onload = () => createChart(improvements);
+      document.head.appendChild(script);
+    } else {
+      createChart(improvements);
+    }
+
+    function createChart(data) {
+      improvementChart = new Chart(improvementChartCanvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: ['Empathy', 'Bias Intervention'],
+          datasets: [{
+            label: 'Improvement %',
+            data: data,
+            backgroundColor: ['#ff416c', '#ff7f50'],
+            borderRadius: 10,
+            borderWidth: 1,
+            borderColor: '#999',
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true, max: 100 }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => ctx.parsed.y + '% improvement'
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // Alarm reminder using Notifications API
+  function setupReminder() {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") {
+      scheduleNotification();
+    } else if (Notification.permission !== "denied") {
+      Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+          scheduleNotification();
+        }
+      });
+    }
+  }
+  function scheduleNotification() {
+    const lastNotify = localStorage.getItem('empathy-rpg-last-notify');
+    const todayISO = (new Date()).toISOString().slice(0,10);
+    if (lastNotify === todayISO) return;
+
+    const now = new Date();
+    let notifTime = new Date();
+    notifTime.setHours(8,30,0,0);
+    if (notifTime < now) notifTime.setDate(notifTime.getDate() + 1);
+
+    const timeoutDuration = notifTime.getTime() - now.getTime();
+
+    setTimeout(() => {
+      new Notification("Time for your Empathy RPG practice!", {
+        body: "Keep growing your workplace empathy and inclusion skills today.",
+        icon: "https://cdn-icons-png.flaticon.com/512/2965/2965567.png"
+      });
+      localStorage.setItem('empathy-rpg-last-notify', todayISO);
+    }, timeoutDuration);
+  }
+
+  // Theme toggles
+  function applyTheme(dark) {
+    if (dark) {
+      body.setAttribute('data-theme', 'night');
+      themeToggle.checked = true;
+    } else {
+      body.setAttribute('data-theme', 'morning');
+      themeToggle.checked = false;
+    }
+    localStorage.setItem('empathy-rpg-theme', dark ? "dark" : "light");
+  }
+  themeToggle.addEventListener('change', e => {
+    applyTheme(e.target.checked);
+  });
+
+  function applyAmbience(night) {
+    if (night) {
+      body.setAttribute('data-theme', 'night');
+      ambienceToggle.checked = true;
+      motivation.textContent = "Good evening! Reflect & grow with calm focus.";
+    } else {
+      body.setAttribute('data-theme', 'morning');
+      ambienceToggle.checked = false;
+      motivation.textContent = state.selectedAvatar ? "Ready for daily challenges? Press Start!" : "Welcome! Choose your avatar to begin your empathy journey.";
+    }
+    localStorage.setItem('empathy-rpg-ambience', night ? "night" : "morning");
+  }
+  ambienceToggle.addEventListener('change', e => {
+    applyAmbience(e.target.checked);
+  });
+
+  // Initialize UI from saved prefs & localStorage
+  function initFromStorage() {
+    const theme = localStorage.getItem('empathy-rpg-theme') === "dark";
+    const ambience = localStorage.getItem('empathy-rpg-ambience') === "night";
+    applyTheme(theme);
+    applyAmbience(ambience);
+
+    const savedXP = parseInt(localStorage.getItem('empathy-rpg-xp') || "0", 10);
+    const savedMeters = JSON.parse(localStorage.getItem('empathy-rpg-meters') || '{"empathy":0,"bias":0,"awareness":0,"tone":0}');
+    const savedStreak = parseInt(localStorage.getItem('empathy-rpg-streak') || "0", 10);
+    state.xp = isNaN(savedXP) ? 0 : savedXP;
+    state.meters = savedMeters;
+    state.streak = isNaN(savedStreak) ? 0 : savedStreak;
+
+    updateLevelAndBadges();
+    updateUI();
+    updateStreakAndStorage();
+  }
+
+  // Save XP and meters on unload
+  window.addEventListener('beforeunload', () => {
+    localStorage.setItem('empathy-rpg-xp', state.xp.toString());
+    localStorage.setItem('empathy-rpg-meters', JSON.stringify(state.meters));
+  });
+
+  // Keyboard shortcut to toggle theme Ctrl+M
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'm') {
+      themeToggle.checked = !themeToggle.checked;
+      applyTheme(themeToggle.checked);
+    }
+  });
+
+  // Setup notification reminder on load
+  window.addEventListener('load', setupReminder);
+
+  initFromStorage();
+
+})();
+</script>
+</body>
+</html>
